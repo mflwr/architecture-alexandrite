@@ -1,0 +1,27 @@
+@startuml
+actor Operator
+participant MES_UI
+participant MES_API
+participant Cache
+participant MES_DB
+
+Operator -> MES_UI: Запрос списка заказов
+MES_UI -> MES_API: GET /orders?status=NEW
+MES_API -> Cache: Проверка наличия ключа "orders:new"
+alt Кеш найден
+    Cache --> MES_API: Возврат данных
+else Кеш отсутствует
+    MES_API -> MES_DB: Запрос к БД
+    MES_DB --> MES_API: Результат
+    MES_API -> Cache: Сохранение с TTL=60s
+end
+MES_API --> MES_UI: Данные заказов
+MES_UI --> Operator: Отображение списка
+
+... Изменение статуса ...
+Operator -> MES_UI: Изменение статуса заказа
+MES_UI -> MES_API: PUT /orders/{id}/status
+MES_API -> MES_DB: Обновление статуса
+MES_API -> Cache: Удаление ключа "orders:new"
+MES_API --> MES_UI: Подтверждение
+@enduml
